@@ -10,12 +10,12 @@
 
 <UL>
 
-	<LI><A HREF="#NAME">NAME</A>
-	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
-	<LI><A HREF="#DESCRIPTION">DESCRIPTION</A>
-	<LI><A HREF="#KNOWN_PROBLEMS_AND_LIMITATIONS">KNOWN PROBLEMS AND LIMITATIONS</A>
-	<LI><A HREF="#CREDITS">CREDITS</A>
-	<LI><A HREF="#AUTHOR">AUTHOR</A>
+	<LI><A HREF="#NAME">NAME</A></LI>
+	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A></LI>
+	<LI><A HREF="#DESCRIPTION">DESCRIPTION</A></LI>
+	<LI><A HREF="#KNOWN_PROBLEMS_AND_LIMITATIONS">KNOWN PROBLEMS AND LIMITATIONS</A></LI>
+	<LI><A HREF="#CREDITS">CREDITS</A></LI>
+	<LI><A HREF="#AUTHOR">AUTHOR</A></LI>
 </UL>
 <!-- INDEX END -->
 
@@ -26,21 +26,26 @@
 FlockDir - override perl <CODE>flock()</CODE> for network or portability
 purposes
 
+</P>
 <P>
 <HR>
 <H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
 <P>
 use File::FlockDir qw (open close flock);
 
+</P>
 <P>
 open (FH, ``&gt;$path'');
 
+</P>
 <P>
 <CODE>flock(FH,</CODE> 2);
 
+</P>
 <P>
 close FH;
 
+</P>
 <P>
 <HR>
 <H1><A NAME="DESCRIPTION">DESCRIPTION</A></H1>
@@ -48,18 +53,23 @@ close FH;
 A flock module for Windows9x and other systems lacking a good perl
 <CODE>flock()</CODE> function (not platform specific)
 
+</P>
 <P>
 Usage:
 
+</P>
 <P>
 use File::FlockDir qw (open close flock);
 
+</P>
 <P>
 OR (careful)
 
+</P>
 <P>
 use File::FlockDir qw (GLOBAL_open GLOBAL_close GLOBAL_flock);
 
+</P>
 <P>
 Rationale: flock on Win95/98 is badly broken but perl code needs to be
 portable. One way to do this is to override perl's <CODE>open(),</CODE>
@@ -70,6 +80,7 @@ included in the CPAN distribution but belongs to those authors. New code is
 deliberately kept at a minimum. As with <CODE>nflock(),</CODE> this will
 allow <CODE>flock()</CODE> to work over a network (usually).
 
+</P>
 <P>
 <HR>
 <H1><A NAME="KNOWN_PROBLEMS_AND_LIMITATIONS">KNOWN PROBLEMS AND LIMITATIONS</A></H1>
@@ -78,13 +89,18 @@ allow <CODE>flock()</CODE> to work over a network (usually).
 <P>
 May be slow compared to unix <CODE>flock().</CODE>
 
+</P>
 <LI>
 <P>
 Abnormal termination may leave File::LockDir entries still on the drive.
-This means the directory locks set by File::LockDir will have to be removed
+This means the directory locks set by File::LockDir may have to be removed
 after a system crash to prevent the module from assuming that files locked
-at the time of the crash are still locked later.
+at the time of the crash are still locked later. This can be overcome by
+setting the variable 
+<EM>File::FlockDir::$Assume_LockDir_Zombie_Minutes</EM> to a value equal to the maximal number of minutes a lock is to be allowed
+to exist (defaults to one week or 10040 minutes).
 
+</P>
 <LI>
 <P>
 Since the implementation creates a subdirectory in the directory containing
@@ -92,6 +108,7 @@ the file that you <CODE>flock(),</CODE> you must have permission to create
 a directory where the file is located in order to <CODE>flock()</CODE> that
 file over the network.
 
+</P>
 </UL>
 <P>
 <HR>
@@ -99,15 +116,19 @@ file over the network.
 <P>
 <EM>Perl Cookbook</EM>, by Tom Christiansen and Nathan Torkington.
 
+</P>
 <P>
 This module is an extension of <EM>Perl Cookbook</EM>'s <CODE>nflock(),</CODE> in chapter 7, section 21 (7.21, pp 264-266).
 
+</P>
 <P>
 <HR>
 <H1><A NAME="AUTHOR">AUTHOR</A></H1>
 <P>
 William Herrera &lt;<A
 HREF="mailto:wherrera@lynxview.com">wherrera@lynxview.com</A>&gt;
+
+</P>
 
 </BODY>
 

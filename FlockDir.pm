@@ -2,7 +2,7 @@ package File::FlockDir;
 # File::FlockDir.pm
 
 sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 0.98 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 0.99 $ =~ /(\d+)\.(\d+)/);
 
 # Copyright (c) 1999, 2000 William Herrera. All rights reserved.
 # This program is free software; you can redistribute it and/or modify it
@@ -26,10 +26,14 @@ sub import {
     $pkg->export($where, $sym, @_);
 }
 
-use vars qw($Max_SH_Processes $Check_Interval %handles_to_names 
-            %handles_to_SH_netlocks %locked_SH %locked_EX);
+use vars qw($Max_SH_Processes $Check_Interval $Assume_LockDir_Zombie_Minutes
+		%handles_to_names %handles_to_SH_netlocks %locked_SH %locked_EX);
 $Max_SH_Processes ||= 20; # predefined or 20 LOCK_SH processes per file
 $Check_Interval ||= 2;    # predefined or 2 sec. between checks while blocked
+
+# This is the timeout for eliminating dead lockdir entries in minutes.
+#   One week is the default; for one day, set to 1440, for forever, set to 0.
+$Assume_LockDir_Zombie_Minutes = 10080; 
 
 # The File::LockDir module required below is available at 
 # ftp.oreilly.com/examples/perl/cookbook if not included with
@@ -84,8 +88,10 @@ sub flock (*;$) {
     }
     elsif($lock & 1) { 
         $s = $handles_to_names{$fh}; # fetch file name
-        if($s) {              
-            while (!nflock($s . 'EX', 1)) {
+        if($s) {
+            $t = $s . 'EX';
+            __expire_zombies($t);
+            while (!nflock($t, 1)) {	
                 return if($lock & 4); # non-blocking
                 sleep $Check_Interval - 1;            
             }
@@ -100,6 +106,7 @@ sub flock (*;$) {
                         $locked_SH{$fh} = 1;
                         last;
                     }
+                    else { __expire_zombies($t) }
                 }
             }       
             nunflock($s . 'EX');  # release LOCK_EX 
@@ -108,12 +115,15 @@ sub flock (*;$) {
     elsif($lock & 2) {
         $s = $handles_to_names{$fh};
         if($s) {              
-            while (!nflock($s . 'EX', 1)) { 
+            $t = $s . 'EX';
+            __expire_zombies($t);
+            while (!nflock($t, 1)) { 
                 return if($lock & 4); # non-blocking
                 sleep $Check_Interval - 1;            
             }
             for($i = 0; $i < $Max_SH_Processes; ++$i) {
                 $t = $s . 'SH' . $i;
+                __expire_zombies($t);
                 while(!nflock($t, 1)) { # failed?                     
                     if ($lock & 4) { # non-blocking
                         while(--$i >= 0) { nunflock($s . 'SH'. $i) }
@@ -127,7 +137,7 @@ sub flock (*;$) {
             while($i >= 0)  { nunflock($s . 'SH' . $i--) } 
         }
     } 
-    return "0 but true";  # TRUE return
+    return 1;  
 }
 
 # "private" helper function __unlock
@@ -153,8 +163,21 @@ sub __unlock {
         }
         delete $locked_EX{$fh};
     }
-    if($success) { return "0 but true" } else { return }
+    if($success) { return 1 } else { return }
 }
+
+# "private" helper function __expire_zombies
+# for more info read the code in the File::LockDir package
+sub __expire_zombies {
+    return if $Assume_LockDir_Zombie_Minutes <= 0;
+    my $lock = shift;
+    my $lockname = File::LockDir::name2lock($lock);
+    my @sa = stat("$lockname/owner");
+    if(@sa && (time - $sa[9])/60 > $Assume_LockDir_Zombie_Minutes) {
+        carp( "Removing expired FlockDir $lock set on " . scalar localtime($sa[9]) );
+        nunflock($lock) or croak "Cannot remove $lock: $!";
+    }
+}     
 
 # default cleanup to avoid leftover temp directories
 END {
@@ -224,9 +247,12 @@ May be slow compared to unix flock().
 
 Abnormal termination may leave File::LockDir entries still on 
 the drive. This means the directory locks set by File::LockDir 
-will have to be removed after a system crash to prevent the module 
+may have to be removed after a system crash to prevent the module 
 from assuming that files locked at the time of the crash are still 
-locked later.
+locked later. This can be overcome by setting the variable 
+I<File::FlockDir::$Assume_LockDir_Zombie_Minutes> to a value equal 
+to the maximal number of minutes a lock is to be allowed to exist 
+(defaults to one week or 10040 minutes).
 
 =item *
 

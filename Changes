@@ -21,8 +21,14 @@ Revision history for Perl extension File::FlockDir.
 	- restricted lock settign to EX or SH mode but not both at once
 
 
+
 0.98 Wed May 3 2000
         - changed return values to return '0 but true' from flock() on success
         - hacked glob handling via eval() for version > 5.005 compatibility
 	- changed some Exporter package parameters (@EXPORT_OK instead of @EXPORT)
+
+0.99 Fri May 5 2000
+	- added alpha version of lock file expiration for handling lockfiles
+		left after system crashes
+        - went back to returning 1 on success, undef on failure from flock
 
