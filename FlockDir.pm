@@ -2,7 +2,7 @@ package File::FlockDir;
 # File::FlockDir.pm
 
 sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 0.99 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.0 $ =~ /(\d+)\.(\d+)/);
 
 # Copyright (c) 1999, 2000 William Herrera. All rights reserved.
 # This program is free software; you can redistribute it and/or modify it
@@ -12,7 +12,8 @@ use strict;
 use Exporter;
 use vars qw(@ISA @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(open close flock);
+@EXPORT_OK = qw(open close flock
+	$Max_SH_Processes $Check_Interval $Assume_LockDir_Zombie_Minutes);
 
 # see perlsub under "Overriding Builtin Functions" regarding
 # the use (when needed to implement flock used by a I<different> 
@@ -28,12 +29,11 @@ sub import {
 
 use vars qw($Max_SH_Processes $Check_Interval $Assume_LockDir_Zombie_Minutes
 		%handles_to_names %handles_to_SH_netlocks %locked_SH %locked_EX);
-$Max_SH_Processes ||= 20; # predefined or 20 LOCK_SH processes per file
-$Check_Interval ||= 2;    # predefined or 2 sec. between checks while blocked
-
+$Max_SH_Processes ||= 20; # predefined or maximum of 20 LOCK_SH processes per file
+$Check_Interval ||= 2;    # predefined or about 2 sec. between checks while blocked
 # This is the timeout for eliminating dead lockdir entries in minutes.
 #   One week is the default; for one day, set to 1440, for forever, set to 0.
-$Assume_LockDir_Zombie_Minutes = 10080; 
+$Assume_LockDir_Zombie_Minutes ||= 10080; 
 
 # The File::LockDir module required below is available at 
 # ftp.oreilly.com/examples/perl/cookbook if not included with
@@ -42,7 +42,7 @@ use File::LockDir qw(nflock nunflock);
 
 use Carp;
 
-# the module archive File-PathConvert-xxx is on CPAN
+# the module archive File-PathConvert-xxx is on CPAN and may be included with this package
 use File::PathConvert qw(&rel2abs);
 
 # override open to save pathname for the handle
@@ -137,6 +137,10 @@ sub flock (*;$) {
             while($i >= 0)  { nunflock($s . 'SH' . $i--) } 
         }
     } 
+    else { 
+        carp "Bad second argument ( $lock ) for flock";
+        return;
+    }   
     return 1;  
 }
 
@@ -241,7 +245,11 @@ this will allow flock() to work over a network (usually).
 
 =item *
 
-May be slow compared to unix flock().
+May be slow compared to unix flock(). This is mainly due to the fact
+it depends upon non-buffered disk writes (directory creation) for its 
+implementation. May be speeded up somewhat by importing and setting 
+the variable I<$Max_SH_Processes> to a smaller value as long as no more 
+than a few processes will be using shared locks at a time on any one file.
 
 =item *
 
@@ -249,9 +257,9 @@ Abnormal termination may leave File::LockDir entries still on
 the drive. This means the directory locks set by File::LockDir 
 may have to be removed after a system crash to prevent the module 
 from assuming that files locked at the time of the crash are still 
-locked later. This can be overcome by setting the variable 
-I<File::FlockDir::$Assume_LockDir_Zombie_Minutes> to a value equal 
-to the maximal number of minutes a lock is to be allowed to exist 
+locked later. This may be partially overcome by importing and setting the 
+variable I<$Assume_LockDir_Zombie_Minutes> to a value equal to the 
+maximal number of minutes a lock is to be allowed to exist 
 (defaults to one week or 10040 minutes).
 
 =item *

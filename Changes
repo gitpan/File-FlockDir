@@ -32,3 +32,8 @@ Revision history for Perl extension File::FlockDir.
 		left after system crashes
         - went back to returning 1 on success, undef on failure from flock
 
+1.0  Mon May 8 2000
+        - first non-beta version
+        - allowed export of several constants used to set module defaults
+        - included the File::PathConvert module in the package
+
