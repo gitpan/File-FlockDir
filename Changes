@@ -12,4 +12,6 @@ Revision history for Perl extension File::FlockDir.
 0.93  Mon Apr 26 00:05
         - added the README
 
+0.94  Tue Sept 7 07:35
+        - corrected typo in close
 

@@ -1,6 +1,6 @@
 
 sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 0.93 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 0.94 $ =~ /(\d+)\.(\d+)/);
 
 package File::FlockDir;
 # File::FlockDir.pm
@@ -61,7 +61,7 @@ sub open (*;$) {
 # override perl close
 sub close (*) {
     my($fh) = shift || select ; # for close(FH);  or  close;
-    if(handles_to_names{$fh}) { 
+    if($handles_to_names{$fh}) { 
         $locked_SH{$fh} = 1 if($locked_SH{$fh}); 
         __unlock($fh, 1 | 2);  # release both SH and EX locks
         delete $handles_to_names{$fh};
