@@ -1,0 +1,15 @@
+Revision history for Perl extension File::FlockDir.
+
+0.90  Thu Apr  8 00:57:32 1999
+	- original version
+
+0.91  Sun Apr 18 10:00
+        - some tweaks; put the _Perl Cookbook_ code in the archive
+
+0.92  Sun Apr 25 19:45
+        - changed assignment to %locked_SH in flock()
+
+0.93  Mon Apr 26 00:05
+        - added the README
+
+
