@@ -15,3 +15,7 @@ Revision history for Perl extension File::FlockDir.
 0.94  Tue Sept 7 07:35
         - corrected typo in close
 
+0.95 Sat April 29 2000
+	- corrected strict complaint in perl > versions 5.005
+	- fixed shared lock timeout problem
+	- restricted lock settign to EX or SH mode but not both at once

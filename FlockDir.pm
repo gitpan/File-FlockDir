@@ -1,6 +1,6 @@
 
 sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 0.94 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 0.95 $ =~ /(\d+)\.(\d+)/);
 
 package File::FlockDir;
 # File::FlockDir.pm
@@ -46,7 +46,9 @@ use File::PathConvert qw(&rel2abs);
 sub open (*;$) {
     my($fh) = shift;
     my($spec) = shift;
+	no strict 'refs';
     my($retval) = CORE::open(*$fh, $spec); 
+	use strict 'refs';
     if($retval) {
         $spec =~ /\A[\s+<>]*(.+)/; 
         if($1) {
@@ -90,7 +92,7 @@ sub flock (*;$) {
             else {
                 for($i = 0; $i < $Max_SH_Processes; ++$i) {
                     $t = $s . 'SH' . $i;
-                    if(nflock($t, 0)) {                      
+                    if(nflock($t, 1)) {   
                         $handles_to_SH_netlocks{$fh} = $t;
                         $locked_SH{$fh} = 1;
                         $retval |= 1;  # success
@@ -101,7 +103,7 @@ sub flock (*;$) {
             nunflock($s . 'EX');  # release LOCK_EX 
         }
     } 
-    if($lock & 2) {
+    elsif($lock & 2) {
         $s = $handles_to_names{$fh};
         if($s) {              
             while (!nflock($s . 'EX', 1)) { 
@@ -112,7 +114,7 @@ sub flock (*;$) {
                 $t = $s . 'SH' . $i;
                 while(!nflock($t, 1)) { # failed?                     
                     if ($lock & 4) { # non-blocking
-                        while(--$i >= 0) { nunflock($s . 'SH'. $i); }
+                        while(--$i >= 0) { nunflock($s . 'SH'. $i) }
                         nunflock($s . 'EX');
                         return;
                     }
@@ -120,7 +122,7 @@ sub flock (*;$) {
                 }
             }           
             $locked_EX{$fh} = $s; # keep exclusive lock name
-            while($i >= 0)  { nunflock($s . 'SH' . $i--); } 
+            while($i >= 0)  { nunflock($s . 'SH' . $i--) } 
             $retval |= 2;  # success
         }
     } 
@@ -131,12 +133,13 @@ sub flock (*;$) {
 sub __unlock {
     my($fh) = shift;
     my($lock) = shift;
+    my($retval) = $lock;
     my($s);
     if ( ($lock & 1) && $locked_SH{$fh} ) {
         if (--$locked_SH{$fh} <= 0) {
             $s = $handles_to_SH_netlocks{$fh};
             if($s) {
-                nunflock($s);                
+                nunflock($s) or $retval = 0;
                 delete $handles_to_SH_netlocks{$fh};
             }
             delete $locked_SH{$fh};
@@ -145,11 +148,11 @@ sub __unlock {
     if ( ($lock & 2) && $locked_EX{$fh} ) {
         $s = $handles_to_names{$fh};
         if($s) {
-            nunflock($s . 'EX');
+            nunflock($s . 'EX') or $retval = 0;
         }
         delete $locked_EX{$fh};
     }
-    return $lock;
+    return $retval;
 }
 
 # default cleanup to avoid leftover temp directories
