@@ -19,3 +19,9 @@ Revision history for Perl extension File::FlockDir.
 	- corrected strict complaint in perl > versions 5.005
 	- fixed shared lock timeout problem
 	- restricted lock settign to EX or SH mode but not both at once
+
+0.97 Tues May 2 2000
+	- cleaned up return values from the flock function, which now 
+		returns FALSE if it fails and "0 but true", a TRUE value, 
+		if it succeeds.
+

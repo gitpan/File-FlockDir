@@ -1,11 +1,11 @@
 
 sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 0.95 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 0.97 $ =~ /(\d+)\.(\d+)/);
 
 package File::FlockDir;
 # File::FlockDir.pm
 
-# Copyright (c) 1999 William Herrera. All rights reserved.
+# Copyright (c) 1999, 2000 William Herrera. All rights reserved.
 # This program is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself. Also, see the CREDITS.
 
@@ -76,9 +76,10 @@ sub flock (*;$) {
     my($fh) = shift;
     my($lock) = shift; 
     my($s, $t, $i);
-    my($retval) = 0;
-    return __unlock($fh, $lock) if ($lock & 8);
-    if($lock & 1) { 
+    if ($lock & 8) {
+        return __unlock($fh, $lock);
+    }
+    elsif($lock & 1) { 
         $s = $handles_to_names{$fh}; # fetch file name
         if($s) {              
             while (!nflock($s . 'EX', 1)) {
@@ -87,7 +88,6 @@ sub flock (*;$) {
             }
             if($locked_SH{$fh}) {
                 $locked_SH{$fh}++;  
-                $retval |= 1; # success
             }
             else {
                 for($i = 0; $i < $Max_SH_Processes; ++$i) {
@@ -95,7 +95,6 @@ sub flock (*;$) {
                     if(nflock($t, 1)) {   
                         $handles_to_SH_netlocks{$fh} = $t;
                         $locked_SH{$fh} = 1;
-                        $retval |= 1;  # success
                         last;
                     }
                 }
@@ -116,30 +115,29 @@ sub flock (*;$) {
                     if ($lock & 4) { # non-blocking
                         while(--$i >= 0) { nunflock($s . 'SH'. $i) }
                         nunflock($s . 'EX');
-                        return;
+                        return; # failure
                     }
                     sleep $Check_Interval - 1; 
                 }
             }           
             $locked_EX{$fh} = $s; # keep exclusive lock name
             while($i >= 0)  { nunflock($s . 'SH' . $i--) } 
-            $retval |= 2;  # success
         }
     } 
-    return $retval;  # 1 for LOCK_SH, 2 for LOCK_EX, 3 for both set.
+    return "0 but true";  # TRUE return
 }
 
 # "private" helper function __unlock
 sub __unlock {
     my($fh) = shift;
     my($lock) = shift;
-    my($retval) = $lock;
+    my($success) = 1;
     my($s);
     if ( ($lock & 1) && $locked_SH{$fh} ) {
         if (--$locked_SH{$fh} <= 0) {
             $s = $handles_to_SH_netlocks{$fh};
             if($s) {
-                nunflock($s) or $retval = 0;
+                nunflock($s) or $success = 0;
                 delete $handles_to_SH_netlocks{$fh};
             }
             delete $locked_SH{$fh};
@@ -148,11 +146,11 @@ sub __unlock {
     if ( ($lock & 2) && $locked_EX{$fh} ) {
         $s = $handles_to_names{$fh};
         if($s) {
-            nunflock($s . 'EX') or $retval = 0;
+            nunflock($s . 'EX') or $success = 0; # can't remove a dir so FALSE return
         }
         delete $locked_EX{$fh};
     }
-    return $retval;
+    if($success) { return "0 but true" } else { return }
 }
 
 # default cleanup to avoid leftover temp directories
