@@ -2,7 +2,7 @@ package File::FlockDir;
 # File::FlockDir.pm
 
 sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 1.0 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.02 $ =~ /(\d+)\.(\d+)/);
 
 # Copyright (c) 1999, 2000 William Herrera. All rights reserved.
 # This program is free software; you can redistribute it and/or modify it
@@ -27,8 +27,8 @@ sub import {
     $pkg->export($where, $sym, @_);
 }
 
-use vars qw($Max_SH_Processes $Check_Interval $Assume_LockDir_Zombie_Minutes
-		%handles_to_names %handles_to_SH_netlocks %locked_SH %locked_EX);
+use vars qw(%handles_to_names %handles_to_SH_netlocks %locked_SH %locked_EX
+		$Max_SH_Processes $Check_Interval $Assume_LockDir_Zombie_Minutes);
 $Max_SH_Processes ||= 20; # predefined or maximum of 20 LOCK_SH processes per file
 $Check_Interval ||= 2;    # predefined or about 2 sec. between checks while blocked
 # This is the timeout for eliminating dead lockdir entries in minutes.
@@ -42,22 +42,23 @@ use File::LockDir qw(nflock nunflock);
 
 use Carp;
 
-# the module archive File-PathConvert-xxx is on CPAN and may be included with this package
-use File::PathConvert qw(&rel2abs);
-
 # override open to save pathname for the handle
 sub open (*;$) {
-    my($fh) = shift;
-    my($spec) = shift;
+    my $fh = shift;
+    my $spec = shift;
+    my $retval;
     no strict 'refs';
-    my($retval) = CORE::open(*$fh, $spec); 
+    $retval = CORE::open(*$fh, $spec); 
     # hack for > 5.005 compatibility...
     eval('*' . (caller(0))[0] . '::' . $fh . '= $fh;');
     use strict 'refs';
     if($retval) {
-        $spec =~ /\A[\s+<>]*(.+)/; 
+        $spec =~ /\A[\s+<>]*(.+)\s*/; 
         if($1) {
-            $handles_to_names{$fh} = rel2abs($1) 
+            my $t = $1;
+            # FATxx File::Basename module file system bug workaround
+            $t =~ s|:[\\/]([^\\/]*\Z)|:/../$1|;
+            $handles_to_names{$fh} = $t 
                           unless($handles_to_names{$fh});
         }
         else { carp("syntax error in File::FlockDir open for $spec\n"); }
@@ -65,9 +66,10 @@ sub open (*;$) {
     return $retval;    
 }
 
+
 # override perl close
 sub close (*) {
-    my($fh) = shift || select ; # for close(FH);  or  close;
+    my $fh = shift || select ; # for close(FH);  or  close;
     if($handles_to_names{$fh}) { 
         $locked_SH{$fh} = 1 if($locked_SH{$fh}); 
         __unlock($fh, 1 | 2);  # release both SH and EX locks
@@ -78,10 +80,11 @@ sub close (*) {
     use strict 'refs';
 }
 
+
 # override perl flock
 sub flock (*;$) {    
-    my($fh) = shift;
-    my($lock) = shift; 
+    my $fh = shift;
+    my $lock = shift; 
     my($s, $t, $i);
     if ($lock & 8) {
         return __unlock($fh, $lock);
@@ -90,6 +93,7 @@ sub flock (*;$) {
         $s = $handles_to_names{$fh}; # fetch file name
         if($s) {
             $t = $s . 'EX';
+            $t =~ s|:[\\/]([^\\/]*\Z)|:/../$1|;
             __expire_zombies($t);
             while (!nflock($t, 1)) {	
                 return if($lock & 4); # non-blocking
@@ -144,12 +148,13 @@ sub flock (*;$) {
     return 1;  
 }
 
+
 # "private" helper function __unlock
 sub __unlock {
-    my($fh) = shift;
-    my($lock) = shift;
-    my($success) = 1;
-    my($s);
+    my $fh = shift;
+    my $lock = shift;
+    my $success = 1;
+    my $s;
     if ( ($lock & 1) && $locked_SH{$fh} ) {
         if (--$locked_SH{$fh} <= 0) {
             $s = $handles_to_SH_netlocks{$fh};
@@ -183,9 +188,10 @@ sub __expire_zombies {
     }
 }     
 
+
 # default cleanup to avoid leftover temp directories
 END {
-    my ($fh);
+    my $fh;
     foreach $fh (keys %locked_EX) {
         __unlock($fh, 2);
     }

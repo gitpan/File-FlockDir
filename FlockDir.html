@@ -6,129 +6,87 @@
 
 <BODY>
 
+<A NAME="__index__"></A>
 <!-- INDEX BEGIN -->
 
 <UL>
 
-	<LI><A HREF="#NAME">NAME</A></LI>
-	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A></LI>
-	<LI><A HREF="#DESCRIPTION">DESCRIPTION</A></LI>
-	<LI><A HREF="#KNOWN_PROBLEMS_AND_LIMITATIONS">KNOWN PROBLEMS AND LIMITATIONS</A></LI>
-	<LI><A HREF="#CREDITS">CREDITS</A></LI>
-	<LI><A HREF="#AUTHOR">AUTHOR</A></LI>
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#known problems and limitations">KNOWN PROBLEMS AND LIMITATIONS</A></LI>
+	<LI><A HREF="#credits">CREDITS</A></LI>
+	<LI><A HREF="#author">AUTHOR</A></LI>
 </UL>
 <!-- INDEX END -->
 
 <HR>
 <P>
-<H1><A NAME="NAME">NAME</A></H1>
-<P>
-FlockDir - override perl <CODE>flock()</CODE> for network or portability
-purposes
-
-</P>
+<H1><A NAME="name">NAME</A></H1>
+<P>FlockDir - override perl <CODE>flock()</CODE> for network or portability purposes</P>
 <P>
 <HR>
-<H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
-<P>
-use File::FlockDir qw (open close flock);
-
-</P>
-<P>
-open (FH, ``&gt;$path'');
-
-</P>
-<P>
-<CODE>flock(FH,</CODE> 2);
-
-</P>
-<P>
-close FH;
-
-</P>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<P>use File::FlockDir qw (open close flock);</P>
+<P>open (FH, ``&gt;$path'');</P>
+<P>flock(FH, 2);</P>
+<P>close FH;</P>
 <P>
 <HR>
-<H1><A NAME="DESCRIPTION">DESCRIPTION</A></H1>
-<P>
-A flock module for Windows9x and other systems lacking a good perl
-<CODE>flock()</CODE> function (not platform specific)
-
-</P>
-<P>
-Usage:
-
-</P>
-<P>
-use File::FlockDir qw (open close flock);
-
-</P>
-<P>
-OR (careful)
-
-</P>
-<P>
-use File::FlockDir qw (GLOBAL_open GLOBAL_close GLOBAL_flock);
-
-</P>
-<P>
-Rationale: flock on Win95/98 is badly broken but perl code needs to be
-portable. One way to do this is to override perl's <CODE>open(),</CODE>
-<CODE>flock(),</CODE> and <CODE>close().</CODE> We then get an absolute
-file specification for all opened files and and use it in a hash to create
-a unique lock for the file using the File::LockDir module from <EM>Perl Cookbook</EM>, by Christiansen and Torkington (O'Reilly, 1998). This module may be
-included in the CPAN distribution but belongs to those authors. New code is
-deliberately kept at a minimum. As with <CODE>nflock(),</CODE> this will
-allow <CODE>flock()</CODE> to work over a network (usually).
-
-</P>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P>A flock module for Windows9x and other systems lacking 
+a good perl <CODE>flock()</CODE> function (not platform specific)</P>
+<P>Usage:</P>
+<P>use File::FlockDir qw (open close flock);</P>
+<P>OR (careful)</P>
+<P>use File::FlockDir qw (GLOBAL_open GLOBAL_close GLOBAL_flock);</P>
+<P>Rationale: flock on Win95/98 is badly broken but
+perl code needs to be portable. One way to do
+this is to override perl's open(), flock(), and close().
+We then get an absolute file specification for all opened 
+files and and use it in a hash to create a unique lock for 
+the file using the File::LockDir module from <EM>Perl Cookbook</EM>, 
+by Christiansen and Torkington (O'Reilly, 1998). This module may 
+be included in the CPAN distribution but belongs to those authors.
+New code is deliberately kept at a minimum. As with nflock(),
+this will allow <CODE>flock()</CODE> to work over a network (usually).</P>
 <P>
 <HR>
-<H1><A NAME="KNOWN_PROBLEMS_AND_LIMITATIONS">KNOWN PROBLEMS AND LIMITATIONS</A></H1>
+<H1><A NAME="known problems and limitations">KNOWN PROBLEMS AND LIMITATIONS</A></H1>
 <UL>
 <LI>
-<P>
-May be slow compared to unix <CODE>flock().</CODE>
-
-</P>
+May be slow compared to unix flock(). This is mainly due to the fact
+it depends upon non-buffered disk writes (directory creation) for its 
+implementation. May be speeded up somewhat by importing and setting 
+the variable <EM>$Max_SH_Processes</EM> to a smaller value as long as no more 
+than a few processes will be using shared locks at a time on any one file.
+<P></P>
 <LI>
-<P>
-Abnormal termination may leave File::LockDir entries still on the drive.
-This means the directory locks set by File::LockDir may have to be removed
-after a system crash to prevent the module from assuming that files locked
-at the time of the crash are still locked later. This can be overcome by
-setting the variable 
-<EM>File::FlockDir::$Assume_LockDir_Zombie_Minutes</EM> to a value equal to the maximal number of minutes a lock is to be allowed
-to exist (defaults to one week or 10040 minutes).
-
-</P>
+Abnormal termination may leave File::LockDir entries still on 
+the drive. This means the directory locks set by File::LockDir 
+may have to be removed after a system crash to prevent the module 
+from assuming that files locked at the time of the crash are still 
+locked later. This may be partially overcome by importing and setting the 
+variable <EM>$Assume_LockDir_Zombie_Minutes</EM> to a value equal to the 
+maximal number of minutes a lock is to be allowed to exist 
+(defaults to one week or 10040 minutes).
+<P></P>
 <LI>
-<P>
-Since the implementation creates a subdirectory in the directory containing
-the file that you <CODE>flock(),</CODE> you must have permission to create
-a directory where the file is located in order to <CODE>flock()</CODE> that
-file over the network.
-
-</P>
-</UL>
+Since the implementation creates a subdirectory in the directory
+containing the file that you flock(), you must have permission to
+create a directory where the file is located in order to <CODE>flock()</CODE>
+that file over the network.
+<P></P></UL>
 <P>
 <HR>
-<H1><A NAME="CREDITS">CREDITS</A></H1>
-<P>
-<EM>Perl Cookbook</EM>, by Tom Christiansen and Nathan Torkington.
-
-</P>
-<P>
-This module is an extension of <EM>Perl Cookbook</EM>'s <CODE>nflock(),</CODE> in chapter 7, section 21 (7.21, pp 264-266).
-
-</P>
+<H1><A NAME="credits">CREDITS</A></H1>
+<P><EM>Perl Cookbook</EM>, by Tom Christiansen and Nathan Torkington.</P>
+<P>This module is an extension of <EM>Perl Cookbook</EM>'s nflock(), in 
+chapter 7, section 21 (7.21, pp 264-266).</P>
 <P>
 <HR>
-<H1><A NAME="AUTHOR">AUTHOR</A></H1>
-<P>
-William Herrera &lt;<A
-HREF="mailto:wherrera@lynxview.com">wherrera@lynxview.com</A>&gt;
-
-</P>
+<H1><A NAME="author">AUTHOR</A></H1>
+<P>William Herrera &lt;<A HREF="mailto:wherrera@lynxview.com">wherrera@lynxview.com</A>&gt;</P>
 
 </BODY>
 
