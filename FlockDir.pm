@@ -1,9 +1,8 @@
-
-sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 0.97 $ =~ /(\d+)\.(\d+)/);
-
 package File::FlockDir;
 # File::FlockDir.pm
+
+sub Version { $VERSION; }
+$VERSION = sprintf("%d.%02d", q$Revision: 0.98 $ =~ /(\d+)\.(\d+)/);
 
 # Copyright (c) 1999, 2000 William Herrera. All rights reserved.
 # This program is free software; you can redistribute it and/or modify it
@@ -11,9 +10,9 @@ package File::FlockDir;
 
 use strict;
 use Exporter;
-use vars qw(@ISA @EXPORT);
+use vars qw(@ISA @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT = qw(open close flock);
+@EXPORT_OK = qw(open close flock);
 
 # see perlsub under "Overriding Builtin Functions" regarding
 # the use (when needed to implement flock used by a I<different> 
@@ -46,9 +45,11 @@ use File::PathConvert qw(&rel2abs);
 sub open (*;$) {
     my($fh) = shift;
     my($spec) = shift;
-	no strict 'refs';
+    no strict 'refs';
     my($retval) = CORE::open(*$fh, $spec); 
-	use strict 'refs';
+    # hack for > 5.005 compatibility...
+    eval('*' . (caller(0))[0] . '::' . $fh . '= $fh;');
+    use strict 'refs';
     if($retval) {
         $spec =~ /\A[\s+<>]*(.+)/; 
         if($1) {
@@ -68,7 +69,9 @@ sub close (*) {
         __unlock($fh, 1 | 2);  # release both SH and EX locks
         delete $handles_to_names{$fh};
     }
+    no strict 'refs';
     return CORE::close(*$fh);  # delegate rest of close to regular close
+    use strict 'refs';
 }
 
 # override perl flock
