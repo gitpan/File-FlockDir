@@ -45,4 +45,6 @@ Revision history for Perl extension File::FlockDir.
 
 1.03 Wed July 31 2002
         - added some basic tests of the File::Flockdir module
-        
+
+1.04 Thurs August 1 2002
+        - revised the tests for package requirements
