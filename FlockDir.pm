@@ -2,7 +2,7 @@ package File::FlockDir;
 # File::FlockDir.pm
 
 sub Version { $VERSION; }
-$VERSION = sprintf("%d.%02d", q$Revision: 1.02 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.03 $ =~ /(\d+)\.(\d+)/);
 
 # Copyright (c) 1999, 2000 William Herrera. All rights reserved.
 # This program is free software; you can redistribute it and/or modify it
@@ -42,6 +42,9 @@ use File::LockDir qw(nflock nunflock);
 
 use Carp;
 
+# the module archive File-PathConvert-xxx is on CPAN and may be included with this package
+use File::PathConvert qw(&rel2abs);
+
 # override open to save pathname for the handle
 sub open (*;$) {
     my $fh = shift;
@@ -53,12 +56,9 @@ sub open (*;$) {
     eval('*' . (caller(0))[0] . '::' . $fh . '= $fh;');
     use strict 'refs';
     if($retval) {
-        $spec =~ /\A[\s+<>]*(.+)\s*/; 
+        $spec =~ /\A[\s+<>]*(\S+)/; 
         if($1) {
-            my $t = $1;
-            # FATxx File::Basename module file system bug workaround
-            $t =~ s|:[\\/]([^\\/]*\Z)|:/../$1|;
-            $handles_to_names{$fh} = $t 
+            $handles_to_names{$fh} = rel2abs($1) 
                           unless($handles_to_names{$fh});
         }
         else { carp("syntax error in File::FlockDir open for $spec\n"); }
@@ -93,7 +93,6 @@ sub flock (*;$) {
         $s = $handles_to_names{$fh}; # fetch file name
         if($s) {
             $t = $s . 'EX';
-            $t =~ s|:[\\/]([^\\/]*\Z)|:/../$1|;
             __expire_zombies($t);
             while (!nflock($t, 1)) {	
                 return if($lock & 4); # non-blocking
@@ -187,7 +186,6 @@ sub __expire_zombies {
         nunflock($lock) or croak "Cannot remove $lock: $!";
     }
 }     
-
 
 # default cleanup to avoid leftover temp directories
 END {

@@ -20,6 +20,8 @@ Revision history for Perl extension File::FlockDir.
 	- fixed shared lock timeout problem
 	- restricted lock settign to EX or SH mode but not both at once
 
+
+
 0.98 Wed May 3 2000
         - changed return values to return '0 but true' from flock() on success
         - hacked glob handling via eval() for version > 5.005 compatibility
@@ -39,3 +41,8 @@ Revision history for Perl extension File::FlockDir.
         - fixed Fat32 bug with locking files in a root directory of a drive
              (really a workaround to a File::Basename bug)
         - the PathConvert module is no longer needed
+
+
+1.03 Wed July 31 2002
+        - added some basic tests of the File::Flockdir module
+        
